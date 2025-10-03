@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main() {
+    WSADATA wsa;
+    SOCKET server_socket, client_socket;
+    struct sockaddr_in server, client;
+    int c, recv_size;
+    char buffer[1024];
+    
+    printf("Iniciando servidor...\n");
+    WSAStartup(MAKEWORD(2,2), &wsa);
+    
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(12345);
+    
+    bind(server_socket, (struct sockaddr *)&server, sizeof(server));
+    listen(server_socket, 1);
+    printf("Servidor escuchando...\n");
+    
+    c = sizeof(struct sockaddr_in);
+    client_socket = accept(server_socket, (struct sockaddr *)&client, &c);
+    printf("Cliente conectado\n");
+    
+    strcpy(buffer, "Escribe algo: ");
+    send(client_socket, buffer, strlen(buffer), 0);
+    
+    recv_size = recv(client_socket, buffer, 1024, 0);
+    buffer[recv_size] = '\0';
+    printf("Cliente dijo: %s\n", buffer);
+    
+    strcpy(buffer, "Gracias. Adios");
+    send(client_socket, buffer, strlen(buffer), 0);
+    
+    closesocket(client_socket);
+    closesocket(server_socket);
+    WSACleanup();
+    return 0;
+}
+
+----------------------------------------------------------------------------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
+int main() {
+    WSADATA wsa;
+    SOCKET client_socket;
+    struct sockaddr_in server;
+    char buffer[1024];
+    int recv_size;
+    
+    printf("Conectando al servidor...\n");
+    WSAStartup(MAKEWORD(2,2), &wsa);
+    
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_port = htons(12345);
+    
+    connect(client_socket, (struct sockaddr *)&server, sizeof(server));
+    printf("Conectado al servidor\n");
+    
+    recv_size = recv(client_socket, buffer, 1024, 0);
+    buffer[recv_size] = '\0';
+    printf("%s", buffer);
+    
+    printf("> ");
+    fgets(buffer, sizeof(buffer), stdin);
+    buffer[strcspn(buffer, "\n")] = 0;
+    send(client_socket, buffer, strlen(buffer), 0);
+    
+    recv_size = recv(client_socket, buffer, 1024, 0);
+    buffer[recv_size] = '\0';
+    printf("%s\n", buffer);
+    
+    closesocket(client_socket);
+    WSACleanup();
+    return 0;
+}
+
+gcc servidor.c -o servidor -lws2_32
+gcc cliente.c -o cliente -lws2_32
